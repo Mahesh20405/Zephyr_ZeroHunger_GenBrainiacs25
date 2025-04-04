@@ -12,23 +12,23 @@
 #include <EMailSender.h>
 
 // WiFi credentials
-const char* ssid = "Red";
-const char* password = "10201004";
+const char* ssid = "your-ssid"; //Credentials Removed for confidentiality
+const char* password = "pass";
 
 // Email settings (SMTP)
-const char* smtpUser = "food59682@gmail.com";
-const char* smtpPassword = "ijoh xuuv rcvz nrmk";
+const char* smtpUser = "sender@gmail.com";
+const char* smtpPassword = "app-pass";
 const char* smtpServer = "smtp.gmail.com";
 const uint16_t smtpPort = 465;
 
 // Email recipients
-const char* ngoEmail = "redlucario0@gmail.com";       // NGO contact (main emergency)
-const char* kitchenEmail = "redlucario0@gmail.com";   // Community kitchen (use same email for demo)
-const char* managerEmail = "redlucario0@gmail.com";   // Manager (use same email for demo)
+const char* ngoEmail = "ngoreceiver@gmail.com";       // NGO contact (main emergency)
+const char* kitchenEmail = "kitchenreceiver@gmail.com";   // Community kitchen (use same email for demo)
+const char* managerEmail = "manager@gmail.com";   // Manager (use same email for demo)
 
 // ThingSpeak credentials
-unsigned long channelNumber = 2342262;
-const char* writeAPIKey = "S76DJ2LJBVDJUT4E";
+unsigned long channelNumber = --channelNo--;
+const char* writeAPIKey = "api-key";
 
 // Thresholds for food monitoring
 // Normal zone: suitable for standard storage
