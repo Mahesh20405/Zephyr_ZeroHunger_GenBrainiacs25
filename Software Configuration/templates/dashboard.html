@@ -1,312 +1,218 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta http-equiv="refresh" content="30">
-    <title>Smart Food Monitoring Dashboard</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Food Monitoring System Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            background: {{ theme.background }}; 
+        body {
+            background-color: {{ theme.background }};
             color: {{ theme.text }};
-            margin: 2rem;
+            font-family: 'Arial', sans-serif;
+            padding-top: 20px;
         }
-        .card {
-            border: 2px solid {{ theme.primary }};
+        .dashboard-card {
+            margin-bottom: 20px;
             border-radius: 10px;
-            padding: 1rem;
-            margin: 1rem 0;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .card-header {
+            background-color: {{ theme.primary }};
+            color: white;
+            border-radius: 10px 10px 0 0;
+            font-weight: bold;
         }
         .status-normal {
-            background-color: #d4edda;
-            border-color: #c3e6cb;
+            background-color: #4CAF50;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
         }
-        .status-risk {
-            background-color: #fff3cd;
-            border-color: #ffeeba;
+        .status-warning {
+            background-color: #FFC107;
+            color: black;
+            padding: 5px 10px;
+            border-radius: 20px;
         }
-        .status-spoiled {
-            background-color: #f8d7da;
-            border-color: #f5c6cb;
+        .status-danger {
+            background-color: #F44336;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
         }
-        .metric {
+        .refresh-button {
+            background-color: {{ theme.primary }};
+            color: white;
+        }
+        .dashboard-title {
             color: {{ theme.primary }};
-            font-weight: bold;
-            font-size: 18px;
+            margin-bottom: 30px;
         }
-        .metric-container {
-            display: flex;
-            justify-content: space-between;
-            flex-wrap: wrap;
-        }
-        .metric-box {
-            background: rgba(76, 175, 80, 0.1);
-            padding: 1rem;
-            border-radius: 5px;
-            margin: 0.5rem 0;
-            flex: 1;
-            min-width: 200px;
-            margin-right: 1rem;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 1rem 0;
-        }
-        th, td {
-            border: 1px solid {{ theme.primary }};
-            padding: 8px;
-            text-align: left;
-        }
-        th {
-            background-color: rgba(76, 175, 80, 0.2);
-        }
-        .chart-container {
-            height: 300px;
-            margin: 1rem 0;
-        }
-        .recommendation {
-            font-style: italic;
-            margin: 1rem 0;
-            padding: 1rem;
-            background-color: #f5f5f5;
-            border-left: 4px solid {{ theme.primary }};
-        }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .system-status {
-            display: inline-block;
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-            font-weight: bold;
-        }
-        .system-status.online {
-            background-color: #d4edda;
-            color: #155724;
-        }
-        .system-status.training {
-            background-color: #cce5ff;
-            color: #004085;
+        .last-updated {
+            font-size: 0.8rem;
+            color: #666;
+            text-align: right;
+            margin-top: 10px;
         }
     </style>
-    <!-- Add Chart.js for visualizations -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <div class="header">
-        <h1>Smart Food Monitoring Dashboard</h1>
-        <div>
-            <span class="system-status online">System Online</span>
-            {% if data.is_training %}
-            <span class="system-status training">AI Training in Progress</span>
-            {% endif %}
-        </div>
-    </div>
-    
-    <div class="card {% if data.csv_status == 'Normal' %}status-normal{% elif data.csv_status == 'At Risk' %}status-risk{% elif data.csv_status == 'Spoiled' %}status-spoiled{% endif %}">
-        <h2>Current Status: {{ data.csv_status }}</h2>
-        <div class="metric-container">
-            <div class="metric-box">
-                <div>Temperature</div>
-                <div class="metric">{{ data.latest_reading.Temperature }}°C</div>
-            </div>
-            <div class="metric-box">
-                <div>Humidity</div>
-                <div class="metric">{{ data.latest_reading.Humidity }}%</div>
-            </div>
-            <div class="metric-box">
-                <div>Gas Level</div>
-                <div class="metric">{{ data.latest_reading.Gas }}</div>
-            </div>
-            <div class="metric-box">
-                <div>Last Updated</div>
-                <div class="metric">{{ data.last_updated }}</div>
+    <div class="container">
+        <div class="row">
+            <div class="col-md-12 text-center">
+                <h1 class="dashboard-title">Food Monitoring System Dashboard</h1>
+                <p class="last-updated">Last updated: {{ data.last_updated }}</p>
+                <div class="mb-3">
+                    <button class="btn refresh-button" onclick="location.reload()">Refresh Dashboard</button>
+                </div>
             </div>
         </div>
-        
-        {% if data.recommendation %}
-        <div class="recommendation">
-            <strong>AI Recommendation:</strong> {{ data.recommendation }}
+
+        <!-- System Status -->
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card dashboard-card">
+                    <div class="card-header">
+                        System Status
+                    </div>
+                    <div class="card-body">
+                        <h3>Current Status: 
+                            {% if data.csv_status == "Normal" %}
+                                <span class="status-normal">Normal</span>
+                            {% elif data.csv_status == "Warning" %}
+                                <span class="status-warning">Warning</span>
+                            {% else %}
+                                <span class="status-danger">Alert</span>
+                            {% endif %}
+                        </h3>
+                    </div>
+                </div>
+            </div>
         </div>
-        {% endif %}
+
+        <!-- Sensor Data -->
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card dashboard-card">
+                    <div class="card-header">
+                        Recent Sensor Readings
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Timestamp</th>
+                                        <th>Temperature</th>
+                                        <th>Humidity</th>
+                                        <th>Gas</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in data.sensor_data %}
+                                    <tr>
+                                        <td>{{ row.Timestamp }}</td>
+                                        <td>{{ row.Temperature }}°C</td>
+                                        <td>{{ row.Humidity }}%</td>
+                                        <td>{{ row.Gas }}</td>
+                                        <td>
+                                            {% if row.Status == "Normal" %}
+                                                <span class="status-normal">Normal</span>
+                                            {% elif row.Status == "Warning" %}
+                                                <span class="status-warning">Warning</span>
+                                            {% else %}
+                                                <span class="status-danger">Alert</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Email Logs -->
+            <div class="col-md-4">
+                <div class="card dashboard-card">
+                    <div class="card-header">
+                        Recent Email Notifications
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Timestamp</th>
+                                        <th>Recipients</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in data.email_log %}
+                                    <tr>
+                                        <td>{{ row.Timestamp }}</td>
+                                        <td>{{ row.Recipients }}</td>
+                                        <td>{{ row.Status }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Training Metrics -->
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="card dashboard-card">
+                    <div class="card-header">
+                        Training Metrics
+                    </div>
+                    <div class="card-body">
+                        {% if data.metrics %}
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Training Run</th>
+                                        <th>Accuracy</th>
+                                        <th>Precision</th>
+                                        <th>Recall</th>
+                                        <th>F1 Score</th>
+                                        <th>Training Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in data.metrics %}
+                                    <tr>
+                                        <td>{{ loop.index }}</td>
+                                        <td>{{ row.accuracy if 'accuracy' in row else 'N/A' }}</td>
+                                        <td>{{ row.precision if 'precision' in row else 'N/A' }}</td>
+                                        <td>{{ row.recall if 'recall' in row else 'N/A' }}</td>
+                                        <td>{{ row.f1_score if 'f1_score' in row else 'N/A' }}</td>
+                                        <td>{{ row.date if 'date' in row else 'N/A' }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="alert alert-info">
+                            No training metrics available yet. The first training run results will appear here.
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="card">
-        <h2>Recent Sensor Data</h2>
-        <div class="chart-container">
-            <canvas id="sensorChart"></canvas>
-        </div>
-        <table>
-            <tr>
-                <th>Timestamp</th>
-                <th>Temperature</th>
-                <th>Humidity</th>
-                <th>Gas</th>
-                <th>Status</th>
-            </tr>
-            {% for row in data.sensor_data %}
-            <tr>
-                <td>{{ row.Timestamp }}</td>
-                <td>{{ row.Temperature }}°C</td>
-                <td>{{ row.Humidity }}%</td>
-                <td>{{ row.Gas }}</td>
-                <td>{{ row.Status }}</td>
-            </tr>
-            {% endfor %}
-        </table>
-    </div>
-
-    <div class="card">
-        <h2>AI Training Metrics</h2>
-        <div class="metric-container">
-            <div class="metric-box">
-                <div>Current Training Cycle</div>
-                <div class="metric">{{ data.current_cycle }}</div>
-            </div>
-            <div class="metric-box">
-                <div>Last Model Accuracy</div>
-                <div class="metric">{{ data.latest_metrics.accuracy|default('N/A') }}%</div>
-            </div>
-            <div class="metric-box">
-                <div>Total Data Points</div>
-                <div class="metric">{{ data.total_data_points }}</div>
-            </div>
-            <div class="metric-box">
-                <div>Next Training At</div>
-                <div class="metric">{{ data.next_training_at }} points</div>
-            </div>
-        </div>
-        <div class="chart-container">
-            <canvas id="trainingChart"></canvas>
-        </div>
-        <table>
-            <tr>
-                <th>Cycle</th>
-                <th>Epoch</th>
-                <th>Loss</th>
-                <th>Reward</th>
-                <th>Accuracy</th>
-                <th>Timestamp</th>
-            </tr>
-            {% for row in data.metrics %}
-            <tr>
-                <td>{{ row.cycle }}</td>
-                <td>{{ row.epoch }}</td>
-                <td>{{ row.loss }}</td>
-                <td>{{ row.reward }}</td>
-                <td>{{ row.accuracy }}%</td>
-                <td>{{ row.timestamp }}</td>
-            </tr>
-            {% endfor %}
-        </table>
-    </div>
-    
-    <div class="card">
-        <h2>Email Notifications</h2>
-        <table>
-            <tr>
-                <th>Timestamp</th>
-                <th>Recipients</th>
-                <th>Status</th>
-                <th>Send Status</th>
-            </tr>
-            {% for row in data.email_log %}
-            <tr>
-                <td>{{ row.Timestamp }}</td>
-                <td>{{ row.Recipients }}</td>
-                <td>{{ row.Status }}</td>
-                <td>{{ row.SendStatus }}</td>
-            </tr>
-            {% endfor %}
-        </table>
-    </div>
-    
-    <script>
-        // Chart for sensor data
-        var ctx = document.getElementById('sensorChart').getContext('2d');
-        var sensorChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: [{% for row in data.sensor_data %}'{{ row.Timestamp }}'{% if not loop.last %}, {% endif %}{% endfor %}],
-                datasets: [
-                    {
-                        label: 'Temperature (°C)',
-                        data: [{% for row in data.sensor_data %}{{ row.Temperature }}{% if not loop.last %}, {% endif %}{% endfor %}],
-                        borderColor: 'rgba(255, 99, 132, 1)',
-                        tension: 0.1,
-                        fill: false
-                    },
-                    {
-                        label: 'Humidity (%)',
-                        data: [{% for row in data.sensor_data %}{{ row.Humidity }}{% if not loop.last %}, {% endif %}{% endfor %}],
-                        borderColor: 'rgba(54, 162, 235, 1)',
-                        tension: 0.1,
-                        fill: false
-                    },
-                    {
-                        label: 'Gas Level',
-                        data: [{% for row in data.sensor_data %}{{ row.Gas }}{% if not loop.last %}, {% endif %}{% endfor %}],
-                        borderColor: 'rgba(255, 206, 86, 1)',
-                        tension: 0.1,
-                        fill: false
-                    }
-                ]
-            },
-            options: {
-                responsive: true
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: false
-                    }
-                }
-            }
-        });
-        
-        // Chart for training metrics
-        var trainingCtx = document.getElementById('trainingChart').getContext('2d');
-        var trainingChart = new Chart(trainingCtx, {
-            type: 'line',
-            data: {
-                labels: [{% for row in data.metrics %}'Cycle {{ row.cycle }} Epoch {{ row.epoch }}'{% if not loop.last %}, {% endif %}{% endfor %}],
-                datasets: [
-                    {
-                        label: 'Loss',
-                        data: [{% for row in data.metrics %}{{ row.loss }}{% if not loop.last %}, {% endif %}{% endfor %}],
-                        borderColor: 'rgba(255, 99, 132, 1)',
-                        tension: 0.1,
-                        fill: false
-                    },
-                    {
-                        label: 'Reward',
-                        data: [{% for row in data.metrics %}{{ row.reward }}{% if not loop.last %}, {% endif %}{% endfor %}],
-                        borderColor: 'rgba(54, 162, 235, 1)',
-                        tension: 0.1,
-                        fill: false
-                    },
-                    {
-                        label: 'Accuracy (%)',
-                        data: [{% for row in data.metrics %}{{ row.accuracy }}{% if not loop.last %}, {% endif %}{% endfor %}],
-                        borderColor: 'rgba(75, 192, 192, 1)',
-                        tension: 0.1,
-                        fill: false
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
-    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

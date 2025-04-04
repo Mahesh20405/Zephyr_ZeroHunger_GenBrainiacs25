@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IoT Dashboard</title>
+    <style>
+        :root {
+            --primary-green: #4CAF50;
+            --light-green: #8BC34A;
+            --very-light-green: #E8F5E9;
+            --white: #FFFFFF;
+            --light-gray: #F5F5F5;
+            --dark-gray: #333333;
+            --red: #F44336;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--white);
+            color: var(--dark-gray);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background-color: var(--very-light-green);
+            padding: 20px;
+            border-bottom: 3px solid var(--primary-green);
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        
+        .header h1 {
+            margin: 0;
+            color: var(--primary-green);
+        }
+        
+        .card {
+            background-color: var(--white);
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--primary-green);
+        }
+        
+        .card h2 {
+            margin-top: 0;
+            color: var(--primary-green);
+            border-bottom: 1px solid var(--light-gray);
+            padding-bottom: 10px;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .btn {
+            background-color: var(--primary-green);
+            color: var(--white);
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+        
+        .btn:hover {
+            background-color: var(--light-green);
+        }
+        
+        .btn:disabled {
+            background-color: var(--light-gray);
+            cursor: not-allowed;
+        }
+        
+        .device {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            background-color: var(--light-gray);
+        }
+        
+        .device-status {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        
+        .online {
+            background-color: var(--primary-green);
+        }
+        
+        .offline {
+            background-color: var(--red);
+        }
+        
+        .loader {
+            border: 3px solid var(--light-gray);
+            border-radius: 50%;
+            border-top: 3px solid var(--primary-green);
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .chart-container {
+            width: 100%;
+            height: 300px;
+            margin-top: 20px;
+        }
+        
+        .input-group {
+            margin-bottom: 15px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        .input-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--light-gray);
+            border-radius: 4px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        table th, table td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid var(--light-gray);
+        }
+        
+        table th {
+            background-color: var(--very-light-green);
+        }
+        
+        .recommendation {
+            background-color: var(--very-light-green);
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 15px;
+            font-style: italic;
+        }
+        
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>IoT System Dashboard</h1>
+        </div>
+        
+        <div class="grid">
+            <!-- Device Status -->
+            <div class="card">
+                <h2>Device Status</h2>
+                <div class="devices-container">
+                    <div class="device">
+                        <div id="esp-status" class="device-status offline"></div>
+                        <span>ESP (</span>
+                        <input type="text" id="esp-ip" value="192.168.1.100" size="12">
+                        <span>)</span>
+                        <button class="btn" style="margin-left: 10px;" onclick="checkDeviceStatus('esp')">Check</button>
+                    </div>
+                    <div class="device">
+                        <div id="arduino-status" class="device-status offline"></div>
+                        <span>Arduino (</span>
+                        <input type="text" id="arduino-ip" value="192.168.1.101" size="12">
+                        <span>)</span>
+                        <button class="btn" style="margin-left: 10px;" onclick="checkDeviceStatus('arduino')">Check</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Training -->
+            <div class="card">
+                <h2>Model Training</h2>
+                <button id="train-btn" class="btn" onclick="runTraining()">Run Training</button>
+                <div id="training-status" class="hidden">
+                    <div class="loader"></div>
+                    <span>Training in progress...</span>
+                </div>
+                <div id="training-result" class="hidden"></div>
+                <button id="metrics-btn" class="btn" style="margin-top: 10px;" onclick="getTrainingMetrics()">View Metrics</button>
+                <button id="download-btn" class="btn" style="margin-top: 10px;" onclick="downloadMetrics()">Download CSV</button>
+                <button id="ipfs-btn" class="btn" style="margin-top: 10px;" onclick="uploadToIPFS()">Upload to IPFS</button>
+                <div id="ipfs-result" class="hidden"></div>
+            </div>
+        </div>
+        
+        <!-- Training Metrics Visualization -->
+        <div class="card">
+            <h2>Training Metrics</h2>
+            <div id="metrics-container">
+                <p>No training metrics available. Run training first.</p>
+            </div>
+        </div>
+        
+        <!-- ThingSpeak Data -->
+        <div class="card">
+            <h2>ThingSpeak Sensor Data</h2>
+            <button class="btn" onclick="getThingSpeakData()">Fetch Latest Data</button>
+            <div id="thingspeak-loading" class="hidden">
+                <div class="loader"></div>
+                <span>Fetching data...</span>
+            </div>
+            <div id="thingspeak-container"></div>
+            <div class="chart-container">
+                <canvas id="thingspeak-chart"></canvas>
+            </div>
+        </div>
+        
+        <!-- Gemini Recommendations -->
+        <div class="card">
+            <h2>AI Recommendations</h2>
+            <button class="btn" onclick="getGeminiRecommendation()">Generate Recommendation</button>
+            <div id="gemini-loading" class="hidden">
+                <div class="loader"></div>
+                <span>Generating recommendation...</span>
+            </div>
+            <div id="recommendation-container" class="hidden recommendation"></div>
+            
+            <div style="margin-top: 20px;">
+                <h3>Send Recommendation via Email</h3>
+                <div class="input-group">
+                    <label for="email-recipient">Recipient Email:</label>
+                    <input type="email" id="email-recipient" placeholder="recipient@example.com">
+                </div>
+                <button class="btn" onclick="sendEmail()">Send Email</button>
+                <div id="email-result" class="hidden"></div>
+            </div>
+        </div>
+
+        <!-- Language Selector -->
+<div class="form-group">
+    <label for="language-selector">Language:</label>
+    <select id="language-selector" class="form-control">
+      <option value="english">English</option>
+      <option value="tamil">Tamil</option>
+      <option value="telugu">Telugu</option>
+      <option value="kannada">Kannada</option>
+      <option value="malayalam">Malayalam</option>
+    </select>
+  </div>
+  
+  <!-- Recommendation Container -->
+  <div class="card mt-4">
+    <div class="card-header">
+      <h5>System Recommendation</h5>
+    </div>
+    <div class="card-body">
+      <div id="gemini-loading" class="text-center hidden">
+        <div class="loader"></div>
+        <p>Generating recommendation...</p>
+      </div>
+      <div id="recommendation-container" class="hidden"></div>
+      <button class="btn btn-primary mt-3" onclick="getGeminiRecommendation()">Get Recommendation</button>
+    </div>
+  </div>
+        
+        <!-- Email History -->
+        <div class="card">
+            <h2>Email History</h2>
+            <button class="btn" onclick="getEmailHistory()">View History</button>
+            <div id="email-history-container">
+                <p>Click to load email history.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include Chart.js for data visualization -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <script>
+        // Global variables
+        let thingSpeakChart;
+        let currentRecommendation = null;
+        
+        // Helper function for API calls
+// Update apiCall function to handle HTML responses
+async function apiCall(endpoint) {
+    try {
+        const response = await fetch(endpoint);
+        const contentType = response.headers.get('content-type');
+        
+        if (contentType && contentType.includes('application/json')) {
+            return await response.json();
+        } else {
+            const text = await response.text();
+            throw new Error(`Unexpected response format: ${text.slice(0, 100)}`);
+        }
+    } catch (error) {
+        console.error('API call error:', error);
+        return { status: 'error', message: error.message };
+    }
+}
+        
+        // Check device status
+        async function checkDeviceStatus(ip, deviceType) {
+    const statusElement = document.getElementById(`status-${deviceType}`);
+    
+    // If statusElement doesn't exist, handle gracefully
+    if (!statusElement) {
+        console.error(`Element with ID "status-${deviceType}" not found`);
+        return;
+    }
+    
+    try {
+        // Make sure the URL is correct - use relative URL if your frontend is served by the same server
+        const response = await fetch('/device_status', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                ip: ip,
+                type: deviceType
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        
+        statusElement.textContent = result.status.toUpperCase();
+        statusElement.className = `status-indicator ${result.status}`;
+        
+    } catch (error) {
+        if (statusElement) {
+            statusElement.textContent = 'ERROR';
+            statusElement.className = 'status-indicator error';
+        }
+        console.error('Device status check failed:', error);
+    }
+}
+        
+        // Run training
+        async function runTraining() {
+            const trainBtn = document.getElementById('train-btn');
+            const trainingStatus = document.getElementById('training-status');
+            const trainingResult = document.getElementById('training-result');
+            
+            trainBtn.disabled = true;
+            trainingStatus.classList.remove('hidden');
+            trainingResult.classList.add('hidden');
+            
+            try {
+                const result = await apiCall('/run_training', 'POST');
+                
+                trainingResult.innerHTML = result.message;
+                trainingResult.classList.remove('hidden');
+                
+                if (result.status === 'success') {
+                    // Get training metrics if training was successful
+                    getTrainingMetrics();
+                }
+            } catch (error) {
+                trainingResult.innerHTML = `Error: ${error.message}`;
+                trainingResult.classList.remove('hidden');
+            } finally {
+                trainingStatus.classList.add('hidden');
+                trainBtn.disabled = false;
+            }
+        }
+        
+        // Get training metrics
+        async function getTrainingMetrics() {
+    const metricsContainer = document.getElementById('metrics-container');
+    
+    try {
+        const result = await apiCall('/get_training_metrics');
+        
+        if (result.status === 'success') {
+            const metrics = result.latest_metrics;
+            
+            let metricsHtml = `
+                <div style="margin-bottom: 20px;">
+                    <h3>Latest Metrics (Cycle ${result.cycle}):</h3>
+                    <ul>
+                        <li>Epoch: ${metrics.epoch}</li>
+                        <li>Accuracy: ${metrics.accuracy?.toFixed(2) || 'N/A'}%</li>
+                        ${metrics.val_accuracy !== undefined ? 
+                            `<li>Validation Accuracy: ${metrics.val_accuracy.toFixed(2)}%</li>` : ''}
+                        <li>Loss: ${metrics.loss?.toFixed(4) || 'N/A'}</li>
+                        ${metrics.val_loss !== undefined ? 
+                            `<li>Validation Loss: ${metrics.val_loss.toFixed(4)}</li>` : ''}
+                    </ul>
+                </div>
+                <img src="data:image/png;base64,${result.plot}" alt="Training Metrics Plot" style="max-width: 100%;">
+            `;
+            
+            metricsContainer.innerHTML = metricsHtml;
+        } else {
+            metricsContainer.innerHTML = `<p>${result.message}</p>`;
+        }
+    } catch (error) {
+        metricsContainer.innerHTML = `<p>Error fetching metrics: ${error.message}</p>`;
+    }
+}
+        
+        // Download metrics CSV
+        function downloadMetrics() {
+            window.location.href = '/download_metrics';
+        }
+        
+        // Upload to IPFS
+        async function uploadToIPFS() {
+            const ipfsBtn = document.getElementById('ipfs-btn');
+            const ipfsResult = document.getElementById('ipfs-result');
+            
+            ipfsBtn.disabled = true;
+            ipfsResult.innerHTML = '<div class="loader"></div><span>Uploading to IPFS...</span>';
+            ipfsResult.classList.remove('hidden');
+            
+            try {
+                const result = await apiCall('/upload_to_ipfs', 'POST');
+                
+                if (result.status === 'success') {
+                    ipfsResult.innerHTML = `
+                        <p>Successfully uploaded to IPFS!</p>
+                        <p>IPFS Hash: ${result.ipfs_hash}</p>
+                        <p>View at: <a href="${result.gateway_url}" target="_blank">${result.gateway_url}</a></p>
+                    `;
+                } else {
+                    ipfsResult.innerHTML = `<p>Error: ${result.message}</p>`;
+                }
+            } catch (error) {
+                ipfsResult.innerHTML = `<p>Error uploading to IPFS: ${error.message}</p>`;
+            } finally {
+                ipfsBtn.disabled = false;
+            }
+        }
+        
+// Get ThingSpeak data
+async function getThingSpeakData() {
+    const thingSpeakContainer = document.getElementById('thingspeak-container');
+    const thingSpeakLoading = document.getElementById('thingspeak-loading');
+    
+    thingSpeakLoading.classList.remove('hidden');
+    
+    try {
+        const result = await apiCall('/get_thingspeak_data');
+        
+        if (result.status === 'success') {
+            const feeds = result.feeds;
+            const channelInfo = result.channel_info;
+            
+            // Display field info
+            let fieldsInfo = '<h3>Channel: ' + channelInfo.name + '</h3>';
+            fieldsInfo += '<div style="margin-bottom: 15px;">';
+            
+            // Determine which fields exist in the data
+            const fieldNames = [];
+            for (let i = 1; i <= 8; i++) {
+                const fieldKey = 'field' + i;
+                const fieldNameKey = 'field' + i + '_name';
+                if (channelInfo[fieldNameKey]) {
+                    fieldNames.push({
+                        key: fieldKey,
+                        name: channelInfo[fieldNameKey]
+                    });
+                }
+            }
+            
+            fieldsInfo += '</div>';
+            
+            // Create a table with the most recent data
+            let tableHtml = '<h3>Recent Readings:</h3>';
+            tableHtml += '<div style="overflow-x: auto;"><table>';
+            tableHtml += '<tr><th>Created At</th>';
+            
+            fieldNames.forEach(field => {
+                tableHtml += `<th>${field.name}</th>`;
+            });
+            
+            tableHtml += '</tr>';
+            
+            // Show the 5 most recent readings
+            const recentFeeds = feeds.slice(-5).reverse();
+            
+            recentFeeds.forEach(feed => {
+                tableHtml += '<tr>';
+                tableHtml += `<td>${new Date(feed.created_at).toLocaleString()}</td>`;
+                
+                fieldNames.forEach(field => {
+                    tableHtml += `<td>${feed[field.key] || 'N/A'}</td>`;
+                });
+                
+                tableHtml += '</tr>';
+            });
+            
+            tableHtml += '</table></div>';
+            
+            thingSpeakContainer.innerHTML = fieldsInfo + tableHtml;
+            
+            // Create the chart if we have data
+            if (feeds.length > 0) {
+                createThingSpeakChart(feeds, fieldNames);
+            } else {
+                document.getElementById('thingspeak-chart').innerHTML = '<p>No data available to display</p>';
+            }
+        } else {
+            thingSpeakContainer.innerHTML = `<p>Error: ${result.message}</p>`;
+            console.error('ThingSpeak API error:', result.message);
+        }
+    } catch (error) {
+        thingSpeakContainer.innerHTML = `<p>Error fetching ThingSpeak data: ${error.message}</p>`;
+        console.error('Error fetching ThingSpeak data:', error);
+    } finally {
+        thingSpeakLoading.classList.add('hidden');
+    }
+}
+
+// Create ThingSpeak Chart
+function createThingSpeakChart(feeds, fieldNames) {
+    const canvas = document.getElementById('thingspeak-chart');
+    const ctx = canvas.getContext('2d');
+    
+    // If we already have a chart, destroy it
+    if (thingSpeakChart) {
+        thingSpeakChart.destroy();
+    }
+    
+    // Prepare datasets
+    const datasets = [];
+    const colors = ['#4CAF50', '#FF5722', '#2196F3', '#9C27B0', '#FFC107', '#795548', '#607D8B', '#E91E63'];
+    
+    fieldNames.forEach((field, index) => {
+        // Filter out any null or undefined values
+        const validData = feeds.map(feed => ({
+            x: new Date(feed.created_at),
+            y: parseFloat(feed[field.key]) || null
+        })).filter(point => point.y !== null);
+        
+        datasets.push({
+            label: field.name,
+            data: validData,
+            borderColor: colors[index % colors.length],
+            backgroundColor: colors[index % colors.length] + '20', // Add transparency for fill
+            fill: false,
+            tension: 0.1,
+            pointRadius: 3
+        });
+    });
+    
+    thingSpeakChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            datasets: datasets
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
+            scales: {
+                x: {
+                    type: 'time',
+                    time: {
+                        unit: 'minute',
+                        displayFormats: {
+                            minute: 'HH:mm'
+                        },
+                        tooltipFormat: 'MM/dd/yyyy HH:mm:ss'
+                    },
+                    title: {
+                        display: true,
+                        text: 'Time'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Value'
+                    },
+                    beginAtZero: false
+                }
+            },
+            plugins: {
+                tooltip: {
+                    enabled: true
+                },
+                legend: {
+                    position: 'top'
+                }
+            }
+        }
+    });
+}
+
+// Get Gemini recommendations
+async function getGeminiRecommendation() {
+    const recommendationContainer = document.getElementById('recommendation-container');
+    const geminiLoading = document.getElementById('gemini-loading');
+    const languageSelector = document.getElementById('language-selector');
+    
+    // Get selected language
+    const selectedLanguage = languageSelector.value;
+    
+    geminiLoading.classList.remove('hidden');
+    recommendationContainer.classList.add('hidden');
+    
+    try {
+        const result = await apiCall(`/get_gemini_recommendation?language=${selectedLanguage}`);
+        
+        if (result.status === 'success') {
+            currentRecommendation = result.recommendation;
+            recommendationContainer.innerHTML = currentRecommendation;
+            recommendationContainer.classList.remove('hidden');
+        } else {
+            recommendationContainer.innerHTML = `<p>Error: ${result.message}</p>`;
+            recommendationContainer.classList.remove('hidden');
+        }
+    } catch (error) {
+        recommendationContainer.innerHTML = `<p>Error getting recommendation: ${error.message}</p>`;
+        recommendationContainer.classList.remove('hidden');
+    } finally {
+        geminiLoading.classList.add('hidden');
+    }
+}
+
+// Send email
+async function sendEmail() {
+    const emailRecipient = document.getElementById('email-recipient').value;
+    const emailResult = document.getElementById('email-result');
+    
+    if (!emailRecipient) {
+        emailResult.innerHTML = "<p>Please enter a recipient email address.</p>";
+        emailResult.classList.remove('hidden');
+        return;
+    }
+    
+    if (!currentRecommendation) {
+        emailResult.innerHTML = "<p>Generate a recommendation first.</p>";
+        emailResult.classList.remove('hidden');
+        return;
+    }
+    
+    emailResult.innerHTML = '<div class="loader"></div><span>Sending email...</span>';
+    emailResult.classList.remove('hidden');
+    
+    try {
+        const result = await apiCall('/send_email', 'POST', {
+            recipient: emailRecipient,
+            content: currentRecommendation
+        });
+        
+        if (result.status === 'success') {
+            emailResult.innerHTML = "<p>Email sent successfully!</p>";
+        } else {
+            emailResult.innerHTML = `<p>Error: ${result.message}</p>`;
+        }
+    } catch (error) {
+        emailResult.innerHTML = `<p>Error sending email: ${error.message}</p>`;
+    }
+}
+
+// Get email history
+async function getEmailHistory() {
+    const emailHistoryContainer = document.getElementById('email-history-container');
+    
+    emailHistoryContainer.innerHTML = '<div class="loader"></div><span>Loading email history...</span>';
+    
+    try {
+        const result = await apiCall('/get_email_history');
+        
+        if (result.status === 'success') {
+            const emails = result.emails;
+            
+            if (emails.length === 0) {
+                emailHistoryContainer.innerHTML = "<p>No emails have been sent yet.</p>";
+                return;
+            }
+            
+            let tableHtml = '<table>';
+            tableHtml += '<tr><th>Date</th><th>Recipient</th><th>Subject</th><th>Status</th></tr>';
+            
+            emails.forEach(email => {
+                tableHtml += `
+                    <tr>
+                        <td>${new Date(email.timestamp).toLocaleString()}</td>
+                        <td>${email.recipient}</td>
+                        <td>${email.subject}</td>
+                        <td>${email.status}</td>
+                    </tr>
+                `;
+            });
+            
+            tableHtml += '</table>';
+            emailHistoryContainer.innerHTML = tableHtml;
+        } else {
+            emailHistoryContainer.innerHTML = `<p>Error: ${result.message}</p>`;
+        }
+    } catch (error) {
+        emailHistoryContainer.innerHTML = `<p>Error fetching email history: ${error.message}</p>`;
+    }
+}
+
+// Initialize device status on page load
+document.addEventListener('DOMContentLoaded', function() {
+    checkDeviceStatus('esp');
+    checkDeviceStatus('arduino');
+});
+</script>
+</body>
+</html>
