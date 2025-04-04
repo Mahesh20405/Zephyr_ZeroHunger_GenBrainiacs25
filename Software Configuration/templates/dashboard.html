@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="refresh" content="30">
+    <title>Smart Food Monitoring Dashboard</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            background: {{ theme.background }}; 
+            color: {{ theme.text }};
+            margin: 2rem;
+        }
+        .card {
+            border: 2px solid {{ theme.primary }};
+            border-radius: 10px;
+            padding: 1rem;
+            margin: 1rem 0;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .status-normal {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+        .status-risk {
+            background-color: #fff3cd;
+            border-color: #ffeeba;
+        }
+        .status-spoiled {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+        .metric {
+            color: {{ theme.primary }};
+            font-weight: bold;
+            font-size: 18px;
+        }
+        .metric-container {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+        .metric-box {
+            background: rgba(76, 175, 80, 0.1);
+            padding: 1rem;
+            border-radius: 5px;
+            margin: 0.5rem 0;
+            flex: 1;
+            min-width: 200px;
+            margin-right: 1rem;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+        th, td {
+            border: 1px solid {{ theme.primary }};
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: rgba(76, 175, 80, 0.2);
+        }
+        .chart-container {
+            height: 300px;
+            margin: 1rem 0;
+        }
+        .recommendation {
+            font-style: italic;
+            margin: 1rem 0;
+            padding: 1rem;
+            background-color: #f5f5f5;
+            border-left: 4px solid {{ theme.primary }};
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .system-status {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .system-status.online {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .system-status.training {
+            background-color: #cce5ff;
+            color: #004085;
+        }
+    </style>
+    <!-- Add Chart.js for visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="header">
+        <h1>Smart Food Monitoring Dashboard</h1>
+        <div>
+            <span class="system-status online">System Online</span>
+            {% if data.is_training %}
+            <span class="system-status training">AI Training in Progress</span>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="card {% if data.csv_status == 'Normal' %}status-normal{% elif data.csv_status == 'At Risk' %}status-risk{% elif data.csv_status == 'Spoiled' %}status-spoiled{% endif %}">
+        <h2>Current Status: {{ data.csv_status }}</h2>
+        <div class="metric-container">
+            <div class="metric-box">
+                <div>Temperature</div>
+                <div class="metric">{{ data.latest_reading.Temperature }}°C</div>
+            </div>
+            <div class="metric-box">
+                <div>Humidity</div>
+                <div class="metric">{{ data.latest_reading.Humidity }}%</div>
+            </div>
+            <div class="metric-box">
+                <div>Gas Level</div>
+                <div class="metric">{{ data.latest_reading.Gas }}</div>
+            </div>
+            <div class="metric-box">
+                <div>Last Updated</div>
+                <div class="metric">{{ data.last_updated }}</div>
+            </div>
+        </div>
+        
+        {% if data.recommendation %}
+        <div class="recommendation">
+            <strong>AI Recommendation:</strong> {{ data.recommendation }}
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h2>Recent Sensor Data</h2>
+        <div class="chart-container">
+            <canvas id="sensorChart"></canvas>
+        </div>
+        <table>
+            <tr>
+                <th>Timestamp</th>
+                <th>Temperature</th>
+                <th>Humidity</th>
+                <th>Gas</th>
+                <th>Status</th>
+            </tr>
+            {% for row in data.sensor_data %}
+            <tr>
+                <td>{{ row.Timestamp }}</td>
+                <td>{{ row.Temperature }}°C</td>
+                <td>{{ row.Humidity }}%</td>
+                <td>{{ row.Gas }}</td>
+                <td>{{ row.Status }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+
+    <div class="card">
+        <h2>AI Training Metrics</h2>
+        <div class="metric-container">
+            <div class="metric-box">
+                <div>Current Training Cycle</div>
+                <div class="metric">{{ data.current_cycle }}</div>
+            </div>
+            <div class="metric-box">
+                <div>Last Model Accuracy</div>
+                <div class="metric">{{ data.latest_metrics.accuracy|default('N/A') }}%</div>
+            </div>
+            <div class="metric-box">
+                <div>Total Data Points</div>
+                <div class="metric">{{ data.total_data_points }}</div>
+            </div>
+            <div class="metric-box">
+                <div>Next Training At</div>
+                <div class="metric">{{ data.next_training_at }} points</div>
+            </div>
+        </div>
+        <div class="chart-container">
+            <canvas id="trainingChart"></canvas>
+        </div>
+        <table>
+            <tr>
+                <th>Cycle</th>
+                <th>Epoch</th>
+                <th>Loss</th>
+                <th>Reward</th>
+                <th>Accuracy</th>
+                <th>Timestamp</th>
+            </tr>
+            {% for row in data.metrics %}
+            <tr>
+                <td>{{ row.cycle }}</td>
+                <td>{{ row.epoch }}</td>
+                <td>{{ row.loss }}</td>
+                <td>{{ row.reward }}</td>
+                <td>{{ row.accuracy }}%</td>
+                <td>{{ row.timestamp }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+    
+    <div class="card">
+        <h2>Email Notifications</h2>
+        <table>
+            <tr>
+                <th>Timestamp</th>
+                <th>Recipients</th>
+                <th>Status</th>
+                <th>Send Status</th>
+            </tr>
+            {% for row in data.email_log %}
+            <tr>
+                <td>{{ row.Timestamp }}</td>
+                <td>{{ row.Recipients }}</td>
+                <td>{{ row.Status }}</td>
+                <td>{{ row.SendStatus }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+    
+    <script>
+        // Chart for sensor data
+        var ctx = document.getElementById('sensorChart').getContext('2d');
+        var sensorChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [{% for row in data.sensor_data %}'{{ row.Timestamp }}'{% if not loop.last %}, {% endif %}{% endfor %}],
+                datasets: [
+                    {
+                        label: 'Temperature (°C)',
+                        data: [{% for row in data.sensor_data %}{{ row.Temperature }}{% if not loop.last %}, {% endif %}{% endfor %}],
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        tension: 0.1,
+                        fill: false
+                    },
+                    {
+                        label: 'Humidity (%)',
+                        data: [{% for row in data.sensor_data %}{{ row.Humidity }}{% if not loop.last %}, {% endif %}{% endfor %}],
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        tension: 0.1,
+                        fill: false
+                    },
+                    {
+                        label: 'Gas Level',
+                        data: [{% for row in data.sensor_data %}{{ row.Gas }}{% if not loop.last %}, {% endif %}{% endfor %}],
+                        borderColor: 'rgba(255, 206, 86, 1)',
+                        tension: 0.1,
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: false
+                    }
+                }
+            }
+        });
+        
+        // Chart for training metrics
+        var trainingCtx = document.getElementById('trainingChart').getContext('2d');
+        var trainingChart = new Chart(trainingCtx, {
+            type: 'line',
+            data: {
+                labels: [{% for row in data.metrics %}'Cycle {{ row.cycle }} Epoch {{ row.epoch }}'{% if not loop.last %}, {% endif %}{% endfor %}],
+                datasets: [
+                    {
+                        label: 'Loss',
+                        data: [{% for row in data.metrics %}{{ row.loss }}{% if not loop.last %}, {% endif %}{% endfor %}],
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        tension: 0.1,
+                        fill: false
+                    },
+                    {
+                        label: 'Reward',
+                        data: [{% for row in data.metrics %}{{ row.reward }}{% if not loop.last %}, {% endif %}{% endfor %}],
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        tension: 0.1,
+                        fill: false
+                    },
+                    {
+                        label: 'Accuracy (%)',
+                        data: [{% for row in data.metrics %}{{ row.accuracy }}{% if not loop.last %}, {% endif %}{% endfor %}],
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        tension: 0.1,
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
