@@ -315,24 +315,51 @@
         let thingSpeakChart;
         let currentRecommendation = null;
         
-        // Helper function for API calls
-// Update apiCall function to handle HTML responses
-async function apiCall(endpoint) {
-    try {
-        const response = await fetch(endpoint);
-        const contentType = response.headers.get('content-type');
-        
-        if (contentType && contentType.includes('application/json')) {
-            return await response.json();
-        } else {
-            const text = await response.text();
-            throw new Error(`Unexpected response format: ${text.slice(0, 100)}`);
+
+        // Define the apiCall function that was missing
+async function apiCall(endpoint, method = 'GET', data = null) {
+    const options = {
+        method: method,
+        headers: {
+            'Content-Type': 'application/json'
         }
-    } catch (error) {
-        console.error('API call error:', error);
-        return { status: 'error', message: error.message };
+    };
+    
+    if (data && (method === 'POST' || method === 'PUT')) {
+        options.body = JSON.stringify(data);
     }
+    
+    const response = await fetch(endpoint, options);
+    
+    if (!response.ok) {
+        throw new Error(`API call failed: ${response.status} ${response.statusText}`);
+    }
+    
+    return await response.json();
 }
+        // Helper function for API calls
+        async function checkDeviceStatus(device) {
+            const ipElement = document.getElementById(`${device}-ip`);
+            const statusElement = document.getElementById(`${device}-status`);
+            
+            statusElement.className = 'device-status';
+            
+            try {
+                const result = await apiCall('/device_status', 'POST', {
+                    ip: ipElement.value,
+                    type: device
+                });
+                
+                if (result.status === 'online') {
+                    statusElement.classList.add('online');
+                } else {
+                    statusElement.classList.add('offline');
+                }
+            } catch (error) {
+                statusElement.classList.add('offline');
+                console.error('Error checking device status:', error);
+            }
+        }
         
         // Check device status
         async function checkDeviceStatus(ip, deviceType) {
@@ -708,22 +735,22 @@ async function getEmailHistory() {
         const result = await apiCall('/get_email_history');
         
         if (result.status === 'success') {
-            const emails = result.emails;
+            const emails = result.history;
             
             if (emails.length === 0) {
                 emailHistoryContainer.innerHTML = "<p>No emails have been sent yet.</p>";
                 return;
             }
             
-            let tableHtml = '<table>';
+            let tableHtml = '<table class="data-table">';
             tableHtml += '<tr><th>Date</th><th>Recipient</th><th>Subject</th><th>Status</th></tr>';
             
             emails.forEach(email => {
                 tableHtml += `
                     <tr>
-                        <td>${new Date(email.timestamp).toLocaleString()}</td>
+                        <td>${email.timestamp}</td>
                         <td>${email.recipient}</td>
-                        <td>${email.subject}</td>
+                        <td>${email.subject || 'System Recommendation'}</td>
                         <td>${email.status}</td>
                     </tr>
                 `;

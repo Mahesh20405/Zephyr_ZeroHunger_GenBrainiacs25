@@ -32,7 +32,7 @@ MIN_ENTRIES = 100  # Minimum entries before training
 
 # Google Sheets and GAS configuration
 SPREADSHEET_URL = "spreadsheet_url"
-GAS_URL = "GAS_URL"
+GAS_URL = "gas_url"
 
 # Configure Google Sheets authentication for VSCode
 # You need to download service account credentials from Google Cloud Console
@@ -40,14 +40,6 @@ def setup_google_sheets():
     # Path to your service account credentials file
     SERVICE_ACCOUNT_FILE = 'E:/Zephyr/Software Configuration/Deep_Q_Reinforcement/service_account_credentials.json.json'
     
-    # If you haven't created this file yet, you'll need to:
-    # 1. Go to Google Cloud Console
-    # 2. Create a project
-    # 3. Enable Google Sheets API
-    # 4. Create a service account
-    # 5. Download the JSON key file and save as 'service_account_credentials.json'
-    
-    # Check if credentials file exists
     if not os.path.exists(SERVICE_ACCOUNT_FILE):
         print(f"ERROR: {SERVICE_ACCOUNT_FILE} not found.")
         print("Please follow these steps to set up authentication:")

@@ -16,7 +16,7 @@ THEME = {
 }
 
 # URL of the web app publishing your Google Sheets
-SCRIPT_URL = "Script URL"
+SCRIPT_URL = "script_url"
 
 def get_data():
     """Get data from Google Sheets using the web app URL"""

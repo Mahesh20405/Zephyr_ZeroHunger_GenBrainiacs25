@@ -88,14 +88,25 @@ def index():
 @app.route('/run_training', methods=['POST'])
 def run_training():
     try:
-        # Run the Python training script
-        result = subprocess.run([
-            'python', 
-            TRAINING_SCRIPT_PATH
-        ], capture_output=True, text=True)
+        # Add a simple response first to test if the route works at all
+        app.logger.info("Run training endpoint called")
         
-        if result.returncode != 0:
-            return jsonify({'status': 'error', 'message': result.stderr})
+        # Use a timeout to prevent hanging
+        # Run the Python training script with a timeout
+        try:
+            result = subprocess.run([
+                'python', 
+                TRAINING_SCRIPT_PATH
+            ], capture_output=True, text=True, timeout=300)  # 5-minute timeout
+            
+            if result.returncode != 0:
+                error_message = result.stderr if result.stderr else "Unknown error occurred during training"
+                app.logger.error(f"Training script failed: {error_message}")
+                return jsonify({'status': 'error', 'message': error_message})
+            
+        except subprocess.TimeoutExpired:
+            app.logger.error("Training script timed out after 5 minutes")
+            return jsonify({'status': 'error', 'message': 'Training script timed out after 5 minutes'})
         
         # Check for the latest metrics file
         latest_metrics_file = get_latest_metrics_file()
@@ -103,8 +114,10 @@ def run_training():
             return jsonify({'status': 'success', 'message': 'Training completed successfully', 'metrics_file': latest_metrics_file})
         else:
             return jsonify({'status': 'error', 'message': 'Training metrics file not found'})
+            
     except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)})
+        app.logger.exception(f"Exception in run_training route: {str(e)}")
+        return jsonify({'status': 'error', 'message': f"Server error: {str(e)}"}), 500
 
 @app.route('/get_training_metrics')
 def get_training_metrics():
@@ -351,20 +364,35 @@ def send_email():
 @app.route('/get_email_history')
 def get_email_history():
     try:
-        # For demonstration, we'll return some dummy data
-        # In a real app, you would fetch this from the Google Sheet
-        # using gspread or similar, which requires OAuth setup
-        dummy_history = [
-            {'recipient': 'user@example.com', 'timestamp': '2025-04-04 14:30:25', 'status': 'sent'},
-            {'recipient': 'admin@example.com', 'timestamp': '2025-04-03 09:15:10', 'status': 'sent'}
-        ]
+        # Set up credentials
+        scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+        credentials = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_PATH, scope)
+        client = gspread.authorize(credentials)
+        
+        # Open the spreadsheet and get the EmailLog sheet
+        spreadsheet = client.open_by_url(GOOGLE_SHEET_URL)
+        email_sheet = spreadsheet.worksheet("EmailLog")
+        
+        # Get all data from the EmailLog sheet
+        email_data = email_sheet.get_all_records()
+        
+        # Transform data to match expected frontend structure
+        history = []
+        for entry in email_data:
+            history.append({
+                'timestamp': entry.get('Timestamp', ''),
+                'recipient': entry.get('Recipients', ''),
+                'status': entry.get('Status', ''),
+                'subject': 'System Recommendation'  # Adding default subject since it's not in the sheet
+            })
         
         return jsonify({
             'status': 'success',
-            'history': dummy_history,
+            'history': history,
             'sheet_url': GSHEET_URL
         })
     except Exception as e:
+        print(f"Error accessing Email Log from Google Sheets: {str(e)}")
         return jsonify({'status': 'error', 'message': str(e)})
 
 @app.route('/list_all_metrics')
